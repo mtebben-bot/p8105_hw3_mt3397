@@ -113,19 +113,22 @@ There are `r nrow(accel_df)` observations in this dataset. There are variables t
 ```{r aggregate}
 agg_accel = 
   accel_df %>% 
-  group_by(day) %>% 
+  group_by(day, day_id) %>% 
   summarize(total_activity = sum(activity_count)) %>% 
+  ungroup(day) %>% 
   mutate(rank = min_rank(desc(total_activity))) %>% 
   arrange(rank) %>% 
   knitr::kable()
 ```
 
-It seems like he is most active towards the end of the week and is less active on the weekends and beginnings of the week. He is most active on Fridays.
+It seems like he is most active towards the end of the week and is less active on the weekends and beginnings of the week. He tends to be the most active on Fridays.
 
 #### Plot of activity over 24 hours by day of the week.
 
 ```{r plot activity}
-accel_df %>% 
+accel_df %>%
+  mutate(day_id = factor(day_id)) %>% 
+  group_by(day, day_id) %>% 
   ggplot(aes(x = minute, y = activity_count, color = day))+
   labs(
     title = "Activity Count over 24 Hours by Day of the Week",
@@ -170,6 +173,48 @@ noaa_snow =
 ```
 
 The most commonly observed snowfall data is 0 cm. This is not surprising because we have data for the entirety of each year in this dataset, and it is unlikely to snow for the majority of months in New York.
+
+#### Average max temperature for January and July across the years.
+
+```{r avg max plot}
+plot_df = 
+  noaa1 %>% 
+  select(year, month, id, tmax) %>% 
+  group_by(id, year, month) %>% 
+  filter(month == c("01", "07")) %>% 
+  mutate(month = recode(month, "01" = "January", "07" = "July")) %>% 
+  summarize(avg_tmax = mean(tmax, na.rm = T)) %>% 
+  ggplot(aes(x = year, y = avg_tmax, group = id, color = id))+
+  geom_point(alpha = 0.5)+
+  geom_path()+
+  facet_grid(. ~ month)+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1), legend.position = "none")+
+  labs(
+    title = "Average Maximum Temperature (C) Across Reporting Stations for January and July Over the Years",
+    x = "Year",
+    y = "Average Maximum Temperature (C)"
+  )
+    
+```
+
+There are a couple of outliers in the data, but the general trends are about the same. The average maximum temperature in January hovers around 0 C, with a fair amount of variation over the years. The average temperature in July hovers between 25 and 30 C, with less variation than is seen for January.
+
+```{r tmin tmax}
+noaa1 %>% 
+  pivot_longer(
+    tmax:tmin,
+    names_to = "observation",
+    values_to = "temperatures"
+  ) %>% 
+  ggplot(aes(x = temperatures, fill = observation)) +
+  geom_density(alpha = 0.5) +
+  facet_grid(. ~ temperatures)
+```
+
+
+
+
+
 
 
 
