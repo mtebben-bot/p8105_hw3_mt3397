@@ -140,9 +140,36 @@ It seems like most of his activity on Sundays happened in the mornings, while mo
 
 ## Problem 3
 
+```{r load NOAA data}
+data("ny_noaa")
+colSums(is.na(ny_noaa))
+```
 
+The dataset has `r nrow(ny_noaa)` observations and `r ncol(ny_noaa)` variables. There is a variable to describe the observation location, the date of the observation, as well as precipitation, snowfall, and temperature readings. The precipitation, snowfall, and snowdepth are measured in tenths of millimeters and millimeters respectively, and temperature is recorded in tenths of degrees Celsius. This is a very large dataset, but it has a lot of missing values, sometimes spanning weeks or months at a time.
 
+#### Tidying `ny_noaa` dataset
 
+We want to separate the date variable into year, month, and day, and we want to make temperature readings into numeric variables. Additionally, we want to change measurements into centimeters and temperatures into Celsius.
+
+```{r tidy data}
+noaa1 = 
+  ny_noaa %>% 
+   separate(date, into = c("year", "month", "day")) %>% 
+   mutate(tmin = as.numeric(tmin),
+          tmax = as.numeric(tmax),
+          snow = snow/10,
+          prcp = prcp/100,
+          snwd = snwd/10,
+          tmax = tmax/10,
+          tmin = tmin/10) 
+noaa_snow =
+  noaa1 %>% 
+  count(snow) %>% 
+  mutate(rank = min_rank(snow)) %>% 
+  arrange(rank)
+```
+
+The most commonly observed snowfall data is 0 cm. This is not surprising because we have data for the entirety of each year in this dataset, and it is unlikely to snow for the majority of months in New York.
 
 
 
