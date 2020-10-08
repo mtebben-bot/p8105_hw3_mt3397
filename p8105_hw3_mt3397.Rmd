@@ -86,10 +86,14 @@ instacart %>%
   )
 ```
 
+
 ## Problem 2
 
+#### Loading, tidying, and otherwise wrangling the data.
+
 ```{r import data}
-read.csv("data/accel_data.csv") %>% 
+accel_df = 
+  read.csv("data/accel_data.csv") %>% 
   pivot_longer( activity.1:activity.1440,
     names_to = "minute",
     names_prefix = "activity.",
@@ -101,9 +105,40 @@ read.csv("data/accel_data.csv") %>%
     weekday_weekend = recode(day, "Monday" = "weekday", "Tuesday" = "weekday", "Wednesday" = "weekday", "Thursday" = "weekday", "Friday" = "weekday", "Saturday" = "weekend", "Sunday" = "weekend"))
 ```
 
+There are `r nrow(accel_df)` observations in this dataset. There are variables to describe the time of the observation -- weekday vs. weekend, week of the observation, day of the observation, and minute of the day of the observation. There is the activity_count variable to describe the value of the activity count.
 
 
+#### Aggregate across minutes to create a total activity variable for each day.
 
+```{r aggregate}
+agg_accel = 
+  accel_df %>% 
+  group_by(day) %>% 
+  summarize(total_activity = sum(activity_count)) %>% 
+  mutate(rank = min_rank(desc(total_activity))) %>% 
+  arrange(rank) %>% 
+  knitr::kable()
+```
+
+It seems like he is most active towards the end of the week and is less active on the weekends and beginnings of the week. He is most active on Fridays.
+
+#### Plot of activity over 24 hours by day of the week.
+
+```{r plot activity}
+accel_df %>% 
+  ggplot(aes(x = minute, y = activity_count, color = day))+
+  labs(
+    title = "Activity Count over 24 Hours by Day of the Week",
+    x = "Time of the Day (minutes)",
+    y = "Activity Count",
+    caption = "Data from 63-year-old patient at CUMC"
+  )+
+  geom_smooth(se = F)
+```
+
+It seems like most of his activity on Sundays happened in the mornings, while most of his activity on Fridays happened in the evenings.
+
+## Problem 3
 
 
 
