@@ -6,6 +6,8 @@ output: github_document
 ```{r setup, include = FALSE}
 library(tidyverse)
 library(p8105.datasets)
+library(patchwork)
+library(ggridges)
 
 knitr::opts_chunk$set(
   fig.width = 6,
@@ -152,7 +154,7 @@ The dataset has `r nrow(ny_noaa)` observations and `r ncol(ny_noaa)` variables. 
 
 #### Tidying `ny_noaa` dataset
 
-We want to separate the date variable into year, month, and day, and we want to make temperature readings into numeric variables. Additionally, we want to change measurements into centimeters and temperatures into Celsius.
+We want to separate the date variable into year, month, and day, and we want to make temperature readings into numeric variables. Additionally, we want to change measurements into millimeters and temperatures into Celsius.
 
 ```{r tidy data}
 noaa1 = 
@@ -160,9 +162,7 @@ noaa1 =
    separate(date, into = c("year", "month", "day")) %>% 
    mutate(tmin = as.numeric(tmin),
           tmax = as.numeric(tmax),
-          snow = snow/10,
-          prcp = prcp/100,
-          snwd = snwd/10,
+          prcp = prcp/10,
           tmax = tmax/10,
           tmin = tmin/10) 
 noaa_snow =
@@ -181,12 +181,12 @@ plot_df =
   noaa1 %>% 
   select(year, month, id, tmax) %>% 
   group_by(id, year, month) %>% 
-  filter(month == c("01", "07")) %>% 
+  filter(month %in% c("01", "07")) %>% 
   mutate(month = recode(month, "01" = "January", "07" = "July")) %>% 
   summarize(avg_tmax = mean(tmax, na.rm = T)) %>% 
   ggplot(aes(x = year, y = avg_tmax, group = id, color = id))+
   geom_point(alpha = 0.5)+
-  geom_path()+
+  geom_smooth(color = "black", se = F)+
   facet_grid(. ~ month)+
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1), legend.position = "none")+
   labs(
@@ -199,8 +199,11 @@ plot_df =
 
 There are a couple of outliers in the data, but the general trends are about the same. The average maximum temperature in January hovers around 0 C, with a fair amount of variation over the years. The average temperature in July hovers between 25 and 30 C, with less variation than is seen for January.
 
+#### 
+
 ```{r tmin tmax}
-noaa1 %>% 
+tmin_tmax_plot = 
+  noaa1 %>%
   pivot_longer(
     tmax:tmin,
     names_to = "observation",
@@ -208,7 +211,27 @@ noaa1 %>%
   ) %>% 
   ggplot(aes(x = temperatures, fill = observation)) +
   geom_density(alpha = 0.5) +
-  facet_grid(. ~ temperatures)
+  labs(
+    title = "Minimum vs. Maximum Temperatures in C",
+    x = "Temperatures (C)",
+    y = "Density"
+  )
+
+snow_plot = 
+  noaa1 %>% 
+  select(snow, year) %>% 
+  filter(snow > 0, snow < 100) %>% 
+  ggplot(aes(x = year, y = snow, color = year))+
+  geom_boxplot(aes(group = year))+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1), legend.position = "none")+
+  labs(
+    title = "Distribution of Snowfall Values (mm) by Year",
+    x = "Year",
+    y = "Snowfall (mm)"
+  )
+
+tmin_tmax_plot / snow_plot
+
 ```
 
 
